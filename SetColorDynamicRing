@@ -1,0 +1,165 @@
+/**
+ * SET TOKEN RING COLOR MACRO
+ * 
+ * Sets the dynamic token ring color for all actors on the current scene.
+ * Works with both linked and unlinked tokens.
+ * 
+ * Compatible with:
+ * - Foundry VTT v12
+ * - D&D 5e v4.4.3
+ * 
+ * Author: [Your Name]
+ * Version: 1.0
+ */
+
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+
+/**
+ * Target hex color for token rings
+ * Change this value to your desired color
+ * Format: #RRGGBB (hex color code)
+ */
+const TARGET_COLOR = "#ff0000"; // Red - change this to your desired color
+
+// =============================================================================
+// MAIN EXECUTION
+// =============================================================================
+
+(async () => {
+    try {
+        // Get the current scene
+        const currentScene = canvas.scene;
+        
+        // Validate we have a scene
+        if (!currentScene) {
+            ui.notifications.error("No active scene found!");
+            return;
+        }
+        
+        console.log(`Processing token rings on scene: ${currentScene.name}`);
+        
+        // Get all tokens on the current scene
+        const sceneTokens = currentScene.tokens;
+        
+        if (sceneTokens.size === 0) {
+            ui.notifications.warn("No tokens found on the current scene.");
+            return;
+        }
+        
+        console.log(`Found ${sceneTokens.size} tokens on scene`);
+        
+        // Track successful updates for reporting
+        let successCount = 0;
+        let errorCount = 0;
+        let skippedPCs = 0;
+        const errors = [];
+        
+        // Process each token on the scene
+        for (const tokenDoc of sceneTokens) {
+            try {
+                // Log which token we're processing
+                console.log(`Processing token: ${tokenDoc.name} (ID: ${tokenDoc.id})`);
+                
+                // Get the actor associated with this token
+                const actor = tokenDoc.actor;
+                
+                // Skip if no actor is associated
+                if (!actor) {
+                    console.log(`⚠ Skipping ${tokenDoc.name}: No associated actor`);
+                    continue;
+                }
+                
+                // Check if this actor is a Player Character
+                // In D&D 5e, PC actors have type "character"
+                if (actor.type === "character") {
+                    skippedPCs++;
+                    console.log(`⏭ Skipping PC: ${tokenDoc.name} (Actor type: ${actor.type})`);
+                    continue;
+                }
+                
+                console.log(`Processing NPC: ${tokenDoc.name} (Actor type: ${actor.type})`);
+                
+                // Prepare the update data for the token's ring color
+                const updateData = {
+                    "ring.colors.ring": TARGET_COLOR
+                };
+                
+                // Update the token document
+                await tokenDoc.update(updateData);
+                
+                successCount++;
+                console.log(`✓ Updated ring color for: ${tokenDoc.name}`);
+                
+            } catch (tokenError) {
+                errorCount++;
+                const errorMsg = `Failed to update ${tokenDoc.name}: ${tokenError.message}`;
+                errors.push(errorMsg);
+                console.error(errorMsg);
+            }
+        }
+        
+        // Report results to user
+        const totalTokens = sceneTokens.size;
+        const processedTokens = totalTokens - skippedPCs;
+        let notificationMsg = `Token ring update complete: ${successCount}/${processedTokens} NPCs updated`;
+        
+        if (skippedPCs > 0) {
+            notificationMsg += ` (${skippedPCs} PCs skipped)`;
+        }
+        
+        if (errorCount > 0) {
+            notificationMsg += `, ${errorCount} errors`;
+            ui.notifications.warn(notificationMsg);
+            
+            // Log detailed error information
+            console.warn("Errors encountered:");
+            errors.forEach(error => console.warn(`  - ${error}`));
+        } else {
+            ui.notifications.info(notificationMsg);
+        }
+        
+        console.log(`Macro execution complete. Color set to: ${TARGET_COLOR}`);
+        console.log(`Summary: ${successCount} NPCs updated, ${skippedPCs} PCs skipped, ${errorCount} errors`);
+        
+    } catch (mainError) {
+        // Handle any unexpected errors in the main execution
+        const errorMsg = `Macro execution failed: ${mainError.message}`;
+        console.error(errorMsg);
+        ui.notifications.error(errorMsg);
+    }
+})();
+
+// =============================================================================
+// USAGE NOTES
+// =============================================================================
+
+/**
+ * HOW TO USE:
+ * 1. Change the TARGET_COLOR constant to your desired hex color
+ * 2. Make sure you're on the scene you want to modify
+ * 3. Run the macro
+ * 
+ * SUPPORTED COLOR FORMATS:
+ * - #ff0000 (red)
+ * - #00ff00 (green)  
+ * - #0000ff (blue)
+ * - #ffffff (white)
+ * - #000000 (black)
+ * - Any valid 6-digit hex color
+ * 
+ * WHAT THIS MACRO DOES:
+ * - Finds all tokens on the current scene
+ * - Skips Player Character tokens (actor type "character")
+ * - Updates each NPC token's ring.colors.ring property
+ * - Works with both linked and unlinked tokens
+ * - Provides console logging and user notifications
+ * - Continues processing even if individual tokens fail
+ * 
+ * WHAT THIS MACRO DOESN'T DO:
+ * - Modify Player Character token rings
+ * - Enable/disable token rings (only changes color)
+ * - Modify other ring properties (thickness, etc.)
+ * - Work across multiple scenes simultaneously
+ */
