@@ -8,8 +8,8 @@
  * - Foundry VTT v12
  * - D&D 5e v4.4.3
  * 
- * Author: Edmund O'Neill, with Claude's help
- * Version: 1.0
+ * Author: Edmund (with Claude's help)
+ * Version: 1.1
  */
 
 // =============================================================================
@@ -61,6 +61,7 @@ const TARGET_BACKGROUND_COLOR = "#000000"; // Black - change this to your desire
         let successCount = 0;
         let errorCount = 0;
         let skippedPCs = 0;
+        let skippedExistingColors = 0;
         const errors = [];
         
         // Process each token on the scene
@@ -86,7 +87,18 @@ const TARGET_BACKGROUND_COLOR = "#000000"; // Black - change this to your desire
                     continue;
                 }
                 
-                console.log(`Processing NPC: ${tokenDoc.name} (Actor type: ${actor.type})`);
+                // Check if token already has ring colors set
+                const currentRingColor = tokenDoc.ring?.colors?.ring;
+                const currentBackgroundColor = tokenDoc.ring?.colors?.background;
+                
+                // Skip if either color is already set (not null/undefined/empty)
+                if (currentRingColor || currentBackgroundColor) {
+                    skippedExistingColors++;
+                    console.log(`⏭ Skipping ${tokenDoc.name}: Already has ring colors set (Ring: ${currentRingColor || 'none'}, Background: ${currentBackgroundColor || 'none'})`);
+                    continue;
+                }
+                
+                console.log(`Processing NPC: ${tokenDoc.name} (Actor type: ${actor.type}) - No existing colors`);
                 
                 // Prepare the update data for the token's ring: enable it and set colors
                 const updateData = {
@@ -111,11 +123,15 @@ const TARGET_BACKGROUND_COLOR = "#000000"; // Black - change this to your desire
         
         // Report results to user
         const totalTokens = sceneTokens.size;
-        const processedTokens = totalTokens - skippedPCs;
-        let notificationMsg = `Token ring update complete: ${successCount}/${processedTokens} NPCs updated`;
+        const eligibleTokens = totalTokens - skippedPCs;
+        let notificationMsg = `Token ring update complete: ${successCount}/${eligibleTokens} NPCs updated`;
         
         if (skippedPCs > 0) {
             notificationMsg += ` (${skippedPCs} PCs skipped)`;
+        }
+        
+        if (skippedExistingColors > 0) {
+            notificationMsg += ` (${skippedExistingColors} with existing colors skipped)`;
         }
         
         if (errorCount > 0) {
@@ -130,7 +146,7 @@ const TARGET_BACKGROUND_COLOR = "#000000"; // Black - change this to your desire
         }
         
         console.log(`Macro execution complete. Ring color: ${TARGET_COLOR}, Background color: ${TARGET_BACKGROUND_COLOR}`);
-        console.log(`Summary: ${successCount} NPCs updated, ${skippedPCs} PCs skipped, ${errorCount} errors`);
+        console.log(`Summary: ${successCount} NPCs updated, ${skippedPCs} PCs skipped, ${skippedExistingColors} with existing colors skipped, ${errorCount} errors`);
         
     } catch (mainError) {
         // Handle any unexpected errors in the main execution
@@ -161,14 +177,16 @@ const TARGET_BACKGROUND_COLOR = "#000000"; // Black - change this to your desire
  * WHAT THIS MACRO DOES:
  * - Finds all tokens on the current scene
  * - Skips Player Character tokens (actor type "character")
- * - Enables dynamic token rings for each NPC token
- * - Updates each NPC token's ring.colors.ring and ring.colors.background properties
+ * - Skips NPC tokens that already have ring colors set
+ * - Enables dynamic token rings for eligible NPC tokens
+ * - Updates ring.colors.ring and ring.colors.background for tokens without existing colors
  * - Works with both linked and unlinked tokens
  * - Provides console logging and user notifications
  * - Continues processing even if individual tokens fail
  * 
  * WHAT THIS MACRO DOESN'T DO:
  * - Modify Player Character token rings
+ * - Overwrite existing ring colors (preserves existing customizations)
  * - Modify other ring properties (thickness, etc.)
  * - Work across multiple scenes simultaneously
  */
