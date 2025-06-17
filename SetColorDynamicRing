@@ -23,6 +23,13 @@
  */
 const TARGET_COLOR = "#ff0000"; // Red - change this to your desired color
 
+/**
+ * Target hex color for token ring background
+ * Change this value to your desired background color
+ * Format: #RRGGBB (hex color code)
+ */
+const TARGET_BACKGROUND_COLOR = "#000000"; // Black - change this to your desired background color
+
 // =============================================================================
 // MAIN EXECUTION
 // =============================================================================
@@ -81,16 +88,18 @@ const TARGET_COLOR = "#ff0000"; // Red - change this to your desired color
                 
                 console.log(`Processing NPC: ${tokenDoc.name} (Actor type: ${actor.type})`);
                 
-                // Prepare the update data for the token's ring color
+                // Prepare the update data for the token's ring: enable it and set colors
                 const updateData = {
-                    "ring.colors.ring": TARGET_COLOR
+                    "ring.enabled": true,
+                    "ring.colors.ring": TARGET_COLOR,
+                    "ring.colors.background": TARGET_BACKGROUND_COLOR
                 };
                 
                 // Update the token document
                 await tokenDoc.update(updateData);
                 
                 successCount++;
-                console.log(`✓ Updated ring color for: ${tokenDoc.name}`);
+                console.log(`✓ Enabled ring and updated colors for: ${tokenDoc.name}`);
                 
             } catch (tokenError) {
                 errorCount++;
@@ -120,7 +129,7 @@ const TARGET_COLOR = "#ff0000"; // Red - change this to your desired color
             ui.notifications.info(notificationMsg);
         }
         
-        console.log(`Macro execution complete. Color set to: ${TARGET_COLOR}`);
+        console.log(`Macro execution complete. Ring color: ${TARGET_COLOR}, Background color: ${TARGET_BACKGROUND_COLOR}`);
         console.log(`Summary: ${successCount} NPCs updated, ${skippedPCs} PCs skipped, ${errorCount} errors`);
         
     } catch (mainError) {
@@ -152,14 +161,14 @@ const TARGET_COLOR = "#ff0000"; // Red - change this to your desired color
  * WHAT THIS MACRO DOES:
  * - Finds all tokens on the current scene
  * - Skips Player Character tokens (actor type "character")
- * - Updates each NPC token's ring.colors.ring property
+ * - Enables dynamic token rings for each NPC token
+ * - Updates each NPC token's ring.colors.ring and ring.colors.background properties
  * - Works with both linked and unlinked tokens
  * - Provides console logging and user notifications
  * - Continues processing even if individual tokens fail
  * 
  * WHAT THIS MACRO DOESN'T DO:
  * - Modify Player Character token rings
- * - Enable/disable token rings (only changes color)
  * - Modify other ring properties (thickness, etc.)
  * - Work across multiple scenes simultaneously
  */
